@@ -1,0 +1,146 @@
+Dim tickerCount As Integer
+Dim currentSheet As String
+Dim sheetNum As Integer
+
+Sub StocksAnalysis()
+    sheetNum = Sheets.Count
+    For k = 1 To sheetNum
+        currentSheet = Sheets(k).Name
+        Worksheets(currentSheet).Activate
+    
+        'Initialize array of all tickers
+        Dim first_open_price_dict As Object, last_close_price_dict As Object, volume_dict As Object
+        Dim data As Variant, i As Long, last_row As Long, key As Variant
+        
+        Set first_open_price_dict = CreateObject("Scripting.Dictionary")
+        Set last_close_price_dict = CreateObject("Scripting.Dictionary")
+        Set volume_dict = CreateObject("Scripting.Dictionary")
+        
+        last_row = Cells(Rows.Count, 1).End(xlUp).Row
+        data = Range("A2:G" & last_row)
+        
+        For i = 1 To UBound(data)
+            ' Setting first close price dictionary
+            If Not first_open_price_dict.Exists(data(i, 1)) Then
+                first_open_price_dict(data(i, 1)) = data(i, 3)
+            End If
+            
+            ' Setting last close price dictionary
+            last_close_price_dict(data(i, 1)) = data(i, 6)
+            
+            ' Setting volume dictionary
+            volume_dict(data(i, 1)) = volume_dict(data(i, 1)) + data(i, 7)
+        Next i
+    
+        ' Create a headers
+        Cells(1, 9).Value = "Ticker"
+        Cells(1, 10).Value = "Yearly Change"
+        Cells(1, 11).Value = "Percent Change"
+        Cells(1, 12).Value = "Total Stock Volume"
+        
+        Cells(2, 15).Value = "Greatest % Increase"
+        Cells(3, 15).Value = "Greatest % Decrease"
+        Cells(4, 15).Value = "Greatest Total Volume"
+        Cells(1, 16).Value = "Ticker"
+        Cells(1, 17).Value = "Value"
+        
+        ' Set values
+        i = 2
+        For Each key In first_open_price_dict.Keys()
+            Cells(i, 9) = key
+            Cells(i, 10) = Format(last_close_price_dict(key) - first_open_price_dict(key), "#.00")
+            Cells(i, 11) = FormatPercent(last_close_price_dict(key) / first_open_price_dict(key) - 1)
+            Cells(i, 12) = volume_dict(key)
+            i = i + 1
+        Next key
+    
+        ' Format sheet
+        Range("I1:L1").Font.Bold = True
+        Range("P1:Q1").Font.Bold = True
+        Range("I1:L1").Borders(xlEdgeBottom).LineStyle = xlContinuous
+        Range("P1:Q1").Borders(xlEdgeBottom).LineStyle = xlContinuous
+        Columns("J").AutoFit
+        Columns("K").AutoFit
+        Columns("L").AutoFit
+        Columns("O").AutoFit
+        
+        gIncrease = 0
+        gDecrease = 0
+        Dim increaseTick As String
+        Dim decreaseTick As String
+        gVolume = 0
+        Dim volumeTick As String
+        
+        dataRowStart = 2
+        dataRowEnd = first_open_price_dict.Count + 2
+        
+        'color code yearly change
+        For i = dataRowStart To dataRowEnd
+    
+            If Cells(i, 10) > 0 Then
+    
+                'Color the cell green
+                Cells(i, 10).Interior.Color = vbGreen
+    
+            ElseIf Cells(i, 10) < 0 Then
+    
+                'Color the cell red
+                Cells(i, 10).Interior.Color = vbRed
+    
+            Else
+    
+                'Clear the cell color
+                Cells(i, 10).Interior.Color = xlNone
+    
+            End If
+    
+            If Cells(i, 11) > 0 Then
+    
+                'Color the cell green
+                Cells(i, 11).Interior.Color = vbGreen
+    
+            ElseIf Cells(i, 11) < 0 Then
+    
+                'Color the cell red
+                Cells(i, 11).Interior.Color = vbRed
+    
+            Else
+    
+                'Clear the cell color
+                Cells(i, 11).Interior.Color = xlNone
+    
+            End If
+    
+        'Greatest % increase/decrease
+            If Cells(i, 11) > 0 And Cells(i, 11) > gIncrease Then
+                gIncrease = Cells(i, 11)
+                increaseTick = Cells(i, 9)
+    
+            ElseIf Cells(i, 11) < 0 And Cells(i, 11) < gDecrease Then
+                gDecrease = Cells(i, 11)
+                decreaseTick = Cells(i, 9)
+    
+            End If
+    
+        'get greatest volume stock
+         If Cells(i, 12) > gVolume Then
+                gVolume = Cells(i, 12)
+                volumeTick = Cells(i, 9)
+    
+            End If
+    
+        Next i
+    
+        
+       Cells(2, 16).Value = increaseTick
+       Cells(2, 17).Value = FormatPercent(gIncrease)
+       Cells(3, 16).Value = decreaseTick
+       Cells(3, 17).Value = FormatPercent(gDecrease)
+       Cells(4, 16).Value = volumeTick
+       Cells(4, 17).Value = gVolume
+       
+       Columns("Q").AutoFit
+    
+    Next k
+    
+End Sub
